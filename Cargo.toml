@@ -1,0 +1,8 @@
+[package]
+name = "openexchange"
+version = "0.1.0"
+authors = ["Johan Sim Jian An <johansja@gmail.com>"]
+
+[dependencies]
+hyper = "0.8"
+rustc-serialize = "0.3"
