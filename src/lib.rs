@@ -1,5 +1,6 @@
 extern crate hyper;
 extern crate rustc_serialize;
+extern crate chrono;
 
 #[cfg(test)]
 #[macro_use]
@@ -11,6 +12,7 @@ use std::fmt;
 use std::io::{self, Read};
 
 use rustc_serialize::json;
+use chrono::*;
 
 #[derive(Debug)]
 pub enum Error {
@@ -88,6 +90,7 @@ impl Client {
             hc: hyper::Client::new(),
         }
     }
+
     pub fn latest(self) -> Result<ExchangeRate, Error> {
         let url = &format!("https://openexchangerates.org/api/latest.json?app_id={}",
                            self.app_id);
@@ -111,11 +114,26 @@ impl Client {
         let decoded: Currencies = try!(json::decode(&body));
         Ok(decoded)
     }
+
+    pub fn historical(self, date: date::Date<UTC>) -> Result<ExchangeRate, Error> {
+        let url = &format!("https://openexchangerates.org/api/historical/{}.json?app_id={}",
+                           date.format("%Y-%m-%d"),
+                           self.app_id);
+        let mut res = try!(self.hc.get(url).send());
+
+        let mut body = String::new();
+        try!(res.read_to_string(&mut body));
+
+        let decoded: ExchangeRate = try!(json::decode(&body));
+        Ok(decoded)
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use chrono::*;
     use hyper;
+
     use super::Client;
 
     #[test]
@@ -335,6 +353,7 @@ Content-Type: application/json; charset=utf-8
         assert!(rate.timestamp != 0);
         assert_eq!(rate.base, "USD");
         assert_eq!(rate.rates.len(), 171);
+        assert_eq!(rate.rates.get("MYR"), Some(&3.892578_f32));
     }
 
     mock_connector!(CurrenciesConnector {
@@ -537,7 +556,213 @@ Content-Type: application/json; charset=utf-8
         assert!(res.is_ok());
 
         let currencies = res.unwrap();
-        assert!(currencies.len() == 171);
+        assert_eq!(currencies.len(), 171);
         assert!(currencies.contains_key("MYR"));
+        assert_eq!(currencies.get("MYR"),
+                   Some(&"Malaysian Ringgit".to_string()));
+    }
+
+
+    mock_connector!(HistoricalConnector {
+        "https://openexchangerates.org" =>
+r###"HTTP/1.1 200 OK
+Date: Mon, 04 Apr 2016 13:00:47 GMT
+Server: Apache
+Last-Modified: Sat, 16 Feb 2013 23:00:00 GMT
+Cache-Control: public
+ETag: "528b3c8a4aa18bc29071d7824f285c5d"
+Access-Control-Allow-Origin: *
+Content-Length: 4189
+Connection: close
+Content-Type: application/json; charset=utf-8
+
+{
+  "disclaimer": "Exchange rates are provided for informational purposes only, and do not constitute financial advice of any kind. Although every attempt is made to ensure quality, NO guarantees are given whatsoever of accuracy, validity, availability, or fitness for any purpose - please use at your own risk. All usage is subject to your acceptance of the Terms and Conditions of Service, available at: http://openexchangerates.org/terms/",
+  "license": "Data sourced from various providers with public-facing APIs; copyright may apply; resale is prohibited; no warranties given of any kind. All usage is subject to your acceptance of the License Agreement available at: http://openexchangerates.org/license/",
+  "timestamp": 1361055600,
+  "base": "USD",
+  "rates": {
+    "AED": 3.672869,
+    "AFN": 51.769999,
+    "ALL": 104.798751,
+    "AMD": 406.549996,
+    "ANG": 1.7887,
+    "AOA": 95.946132,
+    "ARS": 5.009655,
+    "AUD": 0.969258,
+    "AWG": 1.789967,
+    "AZN": 0.7847,
+    "BAM": 1.465127,
+    "BBD": 2,
+    "BDT": 78.95455,
+    "BGN": 1.465315,
+    "BHD": 0.376979,
+    "BIF": 1573.6325,
+    "BMD": 1,
+    "BND": 1.235676,
+    "BOB": 6.984993,
+    "BRL": 1.963769,
+    "BSD": 1,
+    "BTC": 0.036871,
+    "BTN": 54.149416,
+    "BWP": 7.960765,
+    "BYR": 8650.918333,
+    "BZD": 2.018223,
+    "CAD": 1.004479,
+    "CDF": 918.967757,
+    "CHF": 0.921763,
+    "CLF": 0.02122,
+    "CLP": 471.190578,
+    "CNY": 6.243627,
+    "COP": 1784.424248,
+    "CRC": 500.270201,
+    "CUP": 22.687419,
+    "CVE": 82.724563,
+    "CZK": 19.006606,
+    "DJF": 177.153124,
+    "DKK": 5.582097,
+    "DOP": 40.789208,
+    "DZD": 78.29744,
+    "EEK": 11.7331,
+    "EGP": 6.728837,
+    "ETB": 18.3724,
+    "EUR": 0.748104,
+    "FJD": 1.770065,
+    "FKP": 0.644426,
+    "GBP": 0.644426,
+    "GEL": 1.65605,
+    "GHS": 1.899084,
+    "GIP": 0.635095,
+    "GMD": 32.96705,
+    "GNF": 7074.0775,
+    "GTQ": 7.824749,
+    "GYD": 202.634999,
+    "HKD": 7.754526,
+    "HNL": 19.917224,
+    "HRK": 5.675358,
+    "HTG": 42.493713,
+    "HUF": 218.905721,
+    "IDR": 9676.719572,
+    "ILS": 3.688885,
+    "INR": 54.211281,
+    "IQD": 1162.80125,
+    "IRR": 12269.0975,
+    "ISK": 128.82375,
+    "JEP": 0.644426,
+    "JMD": 94.631907,
+    "JOD": 0.70857,
+    "JPY": 93.242464,
+    "KES": 87.44366,
+    "KGS": 47.821867,
+    "KHR": 3992.76375,
+    "KMF": 368.414177,
+    "KPW": 900,
+    "KRW": 1079.374741,
+    "KWD": 0.282232,
+    "KYD": 0.822275,
+    "KZT": 150.384562,
+    "LAK": 7901.858701,
+    "LBP": 1505.93588,
+    "LKR": 126.66026,
+    "LRD": 74.25,
+    "LSL": 8.826443,
+    "LTL": 2.583805,
+    "LVL": 0.523754,
+    "LYD": 1.259093,
+    "MAD": 8.361509,
+    "MDL": 12.099609,
+    "MGA": 2198.315,
+    "MKD": 47.086109,
+    "MMK": 857.898,
+    "MNT": 1387.5,
+    "MOP": 7.980274,
+    "MRO": 298.60675,
+    "MUR": 30.658802,
+    "MVR": 15.3975,
+    "MWK": 361.842376,
+    "MXN": 12.687136,
+    "MYR": 3.094163,
+    "MZN": 30.55,
+    "NAD": 8.81998,
+    "NGN": 157.245031,
+    "NIO": 24.397725,
+    "NOK": 5.542418,
+    "NPR": 86.563924,
+    "NZD": 1.181559,
+    "OMR": 0.384974,
+    "PAB": 1,
+    "PEN": 2.567481,
+    "PGK": 2.0499,
+    "PHP": 40.612969,
+    "PKR": 98.067139,
+    "PLN": 3.133177,
+    "PYG": 4053.87125,
+    "QAR": 3.640933,
+    "RON": 3.281269,
+    "RSD": 83.334276,
+    "RUB": 30.117065,
+    "RWF": 622.261922,
+    "SAR": 3.750351,
+    "SBD": 7.07897,
+    "SCR": 12.691349,
+    "SDG": 4.41191,
+    "SEK": 6.321318,
+    "SGD": 1.236699,
+    "SHP": 0.644426,
+    "SLL": 4317.211208,
+    "SOS": 1598.59,
+    "SRD": 3.28125,
+    "STD": 18397.45,
+    "SVC": 8.741834,
+    "SYP": 70.817901,
+    "SZL": 8.815176,
+    "THB": 29.872007,
+    "TJS": 4.7545,
+    "TMT": 2.85065,
+    "TND": 1.557717,
+    "TOP": 1.727115,
+    "TRY": 1.767556,
+    "TTD": 6.390928,
+    "TWD": 29.629389,
+    "TZS": 1616.365596,
+    "UAH": 8.115192,
+    "UGX": 2637.08879,
+    "USD": 1,
+    "UYU": 18.998253,
+    "UZS": 2006.519989,
+    "VEF": 4.295129,
+    "VND": 20824.31866,
+    "VUV": 90,
+    "WST": 2.273163,
+    "XAF": 491.357387,
+    "XCD": 2.701275,
+    "XDR": 0.65495,
+    "XOF": 491.51925,
+    "XPF": 89.529112,
+    "YER": 214.756258,
+    "ZAR": 8.832957,
+    "ZMK": 5232.196666,
+    "ZWL": 322.387247
+  }
+}"###
+    });
+
+    #[test]
+    fn historical_works() {
+        let client = Client {
+            app_id: "1234",
+            hc: hyper::Client::with_connector(HistoricalConnector::default()),
+        };
+
+        let res = client.historical(UTC.ymd(2013, 2, 16));
+        assert!(res.is_ok());
+
+        let rate = res.unwrap();
+        assert!(!rate.disclaimer.is_empty());
+        assert!(!rate.license.is_empty());
+        assert!(rate.timestamp != 0);
+        assert_eq!(rate.base, "USD");
+        assert_eq!(rate.rates.len(), 161);
+        assert_eq!(rate.rates.get("MYR"), Some(&3.094163_f32));
     }
 }
