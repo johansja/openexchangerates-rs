@@ -74,6 +74,8 @@ pub struct ExchangeRate {
     rates: BTreeMap<String, f32>,
 }
 
+pub type Currencies = BTreeMap<String, String>;
+
 pub struct Client {
     app_id: &'static str,
     hc: hyper::Client,
@@ -86,7 +88,7 @@ impl Client {
             hc: hyper::Client::new(),
         }
     }
-    pub fn get_rate(self) -> Result<ExchangeRate, Error> {
+    pub fn latest(self) -> Result<ExchangeRate, Error> {
         let url = &format!("https://openexchangerates.org/api/latest.json?app_id={}",
                            self.app_id);
         let mut res = try!(self.hc.get(url).send());
@@ -95,6 +97,18 @@ impl Client {
         try!(res.read_to_string(&mut body));
 
         let decoded: ExchangeRate = try!(json::decode(&body));
+        Ok(decoded)
+    }
+
+    pub fn currencies(self) -> Result<Currencies, Error> {
+        let url = &format!("https://openexchangerates.org/api/currencies.json?app_id={}",
+                           self.app_id);
+        let mut res = try!(self.hc.get(url).send());
+
+        let mut body = String::new();
+        try!(res.read_to_string(&mut body));
+
+        let decoded: Currencies = try!(json::decode(&body));
         Ok(decoded)
     }
 }
@@ -111,7 +125,7 @@ mod tests {
         assert_eq!(client.app_id, app_id);
     }
 
-    mock_connector!(OEConnector {
+    mock_connector!(LatestConnector {
         "https://openexchangerates.org" =>
 r###"HTTP/1.1 200 OK
 Date: Sat, 02 Apr 2016 10:17:23 GMT
@@ -306,16 +320,224 @@ Content-Type: application/json; charset=utf-8
     });
 
     #[test]
-    fn get_rate_works() {
+    fn latest_works() {
         let client = Client {
             app_id: "1234",
-            hc: hyper::Client::with_connector(OEConnector::default()),
+            hc: hyper::Client::with_connector(LatestConnector::default()),
         };
 
-        let res = client.get_rate();
+        let res = client.latest();
         assert!(res.is_ok());
 
         let rate = res.unwrap();
-        assert!(rate.disclaimer.len() > 0);
+        assert!(!rate.disclaimer.is_empty());
+        assert!(!rate.license.is_empty());
+        assert!(rate.timestamp != 0);
+        assert_eq!(rate.base, "USD");
+        assert_eq!(rate.rates.len(), 171);
+    }
+
+    mock_connector!(CurrenciesConnector {
+        "https://openexchangerates.org" =>
+r###"HTTP/1.1 200 OK
+Date: Mon, 04 Apr 2016 12:17:13 GMT
+Server: Apache
+Last-Modified: Tue, 30 Jun 2015 12:20:33 GMT
+Cache-Control: public
+ETag: "b3eb21df82ca046c024091278c757705"
+Access-Control-Allow-Origin: *
+Content-Length: 4912
+Connection: close
+Content-Type: application/json; charset=utf-8
+
+{
+  "AED": "United Arab Emirates Dirham",
+  "AFN": "Afghan Afghani",
+  "ALL": "Albanian Lek",
+  "AMD": "Armenian Dram",
+  "ANG": "Netherlands Antillean Guilder",
+  "AOA": "Angolan Kwanza",
+  "ARS": "Argentine Peso",
+  "AUD": "Australian Dollar",
+  "AWG": "Aruban Florin",
+  "AZN": "Azerbaijani Manat",
+  "BAM": "Bosnia-Herzegovina Convertible Mark",
+  "BBD": "Barbadian Dollar",
+  "BDT": "Bangladeshi Taka",
+  "BGN": "Bulgarian Lev",
+  "BHD": "Bahraini Dinar",
+  "BIF": "Burundian Franc",
+  "BMD": "Bermudan Dollar",
+  "BND": "Brunei Dollar",
+  "BOB": "Bolivian Boliviano",
+  "BRL": "Brazilian Real",
+  "BSD": "Bahamian Dollar",
+  "BTC": "Bitcoin",
+  "BTN": "Bhutanese Ngultrum",
+  "BWP": "Botswanan Pula",
+  "BYR": "Belarusian Ruble",
+  "BZD": "Belize Dollar",
+  "CAD": "Canadian Dollar",
+  "CDF": "Congolese Franc",
+  "CHF": "Swiss Franc",
+  "CLF": "Chilean Unit of Account (UF)",
+  "CLP": "Chilean Peso",
+  "CNY": "Chinese Yuan",
+  "COP": "Colombian Peso",
+  "CRC": "Costa Rican Col\u00f3n",
+  "CUC": "Cuban Convertible Peso",
+  "CUP": "Cuban Peso",
+  "CVE": "Cape Verdean Escudo",
+  "CZK": "Czech Republic Koruna",
+  "DJF": "Djiboutian Franc",
+  "DKK": "Danish Krone",
+  "DOP": "Dominican Peso",
+  "DZD": "Algerian Dinar",
+  "EEK": "Estonian Kroon",
+  "EGP": "Egyptian Pound",
+  "ERN": "Eritrean Nakfa",
+  "ETB": "Ethiopian Birr",
+  "EUR": "Euro",
+  "FJD": "Fijian Dollar",
+  "FKP": "Falkland Islands Pound",
+  "GBP": "British Pound Sterling",
+  "GEL": "Georgian Lari",
+  "GGP": "Guernsey Pound",
+  "GHS": "Ghanaian Cedi",
+  "GIP": "Gibraltar Pound",
+  "GMD": "Gambian Dalasi",
+  "GNF": "Guinean Franc",
+  "GTQ": "Guatemalan Quetzal",
+  "GYD": "Guyanaese Dollar",
+  "HKD": "Hong Kong Dollar",
+  "HNL": "Honduran Lempira",
+  "HRK": "Croatian Kuna",
+  "HTG": "Haitian Gourde",
+  "HUF": "Hungarian Forint",
+  "IDR": "Indonesian Rupiah",
+  "ILS": "Israeli New Sheqel",
+  "IMP": "Manx pound",
+  "INR": "Indian Rupee",
+  "IQD": "Iraqi Dinar",
+  "IRR": "Iranian Rial",
+  "ISK": "Icelandic Kr\u00f3na",
+  "JEP": "Jersey Pound",
+  "JMD": "Jamaican Dollar",
+  "JOD": "Jordanian Dinar",
+  "JPY": "Japanese Yen",
+  "KES": "Kenyan Shilling",
+  "KGS": "Kyrgystani Som",
+  "KHR": "Cambodian Riel",
+  "KMF": "Comorian Franc",
+  "KPW": "North Korean Won",
+  "KRW": "South Korean Won",
+  "KWD": "Kuwaiti Dinar",
+  "KYD": "Cayman Islands Dollar",
+  "KZT": "Kazakhstani Tenge",
+  "LAK": "Laotian Kip",
+  "LBP": "Lebanese Pound",
+  "LKR": "Sri Lankan Rupee",
+  "LRD": "Liberian Dollar",
+  "LSL": "Lesotho Loti",
+  "LTL": "Lithuanian Litas",
+  "LVL": "Latvian Lats",
+  "LYD": "Libyan Dinar",
+  "MAD": "Moroccan Dirham",
+  "MDL": "Moldovan Leu",
+  "MGA": "Malagasy Ariary",
+  "MKD": "Macedonian Denar",
+  "MMK": "Myanma Kyat",
+  "MNT": "Mongolian Tugrik",
+  "MOP": "Macanese Pataca",
+  "MRO": "Mauritanian Ouguiya",
+  "MTL": "Maltese Lira",
+  "MUR": "Mauritian Rupee",
+  "MVR": "Maldivian Rufiyaa",
+  "MWK": "Malawian Kwacha",
+  "MXN": "Mexican Peso",
+  "MYR": "Malaysian Ringgit",
+  "MZN": "Mozambican Metical",
+  "NAD": "Namibian Dollar",
+  "NGN": "Nigerian Naira",
+  "NIO": "Nicaraguan C\u00f3rdoba",
+  "NOK": "Norwegian Krone",
+  "NPR": "Nepalese Rupee",
+  "NZD": "New Zealand Dollar",
+  "OMR": "Omani Rial",
+  "PAB": "Panamanian Balboa",
+  "PEN": "Peruvian Nuevo Sol",
+  "PGK": "Papua New Guinean Kina",
+  "PHP": "Philippine Peso",
+  "PKR": "Pakistani Rupee",
+  "PLN": "Polish Zloty",
+  "PYG": "Paraguayan Guarani",
+  "QAR": "Qatari Rial",
+  "RON": "Romanian Leu",
+  "RSD": "Serbian Dinar",
+  "RUB": "Russian Ruble",
+  "RWF": "Rwandan Franc",
+  "SAR": "Saudi Riyal",
+  "SBD": "Solomon Islands Dollar",
+  "SCR": "Seychellois Rupee",
+  "SDG": "Sudanese Pound",
+  "SEK": "Swedish Krona",
+  "SGD": "Singapore Dollar",
+  "SHP": "Saint Helena Pound",
+  "SLL": "Sierra Leonean Leone",
+  "SOS": "Somali Shilling",
+  "SRD": "Surinamese Dollar",
+  "STD": "S\u00e3o Tom\u00e9 and Pr\u00edncipe Dobra",
+  "SVC": "Salvadoran Col\u00f3n",
+  "SYP": "Syrian Pound",
+  "SZL": "Swazi Lilangeni",
+  "THB": "Thai Baht",
+  "TJS": "Tajikistani Somoni",
+  "TMT": "Turkmenistani Manat",
+  "TND": "Tunisian Dinar",
+  "TOP": "Tongan Pa\u02bbanga",
+  "TRY": "Turkish Lira",
+  "TTD": "Trinidad and Tobago Dollar",
+  "TWD": "New Taiwan Dollar",
+  "TZS": "Tanzanian Shilling",
+  "UAH": "Ukrainian Hryvnia",
+  "UGX": "Ugandan Shilling",
+  "USD": "United States Dollar",
+  "UYU": "Uruguayan Peso",
+  "UZS": "Uzbekistan Som",
+  "VEF": "Venezuelan Bol\u00edvar Fuerte",
+  "VND": "Vietnamese Dong",
+  "VUV": "Vanuatu Vatu",
+  "WST": "Samoan Tala",
+  "XAF": "CFA Franc BEAC",
+  "XAG": "Silver (troy ounce)",
+  "XAU": "Gold (troy ounce)",
+  "XCD": "East Caribbean Dollar",
+  "XDR": "Special Drawing Rights",
+  "XOF": "CFA Franc BCEAO",
+  "XPD": "Palladium Ounce",
+  "XPF": "CFP Franc",
+  "XPT": "Platinum Ounce",
+  "YER": "Yemeni Rial",
+  "ZAR": "South African Rand",
+  "ZMK": "Zambian Kwacha (pre-2013)",
+  "ZMW": "Zambian Kwacha",
+  "ZWL": "Zimbabwean Dollar"
+}
+"###
+    });
+
+    #[test]
+    fn currencies_works() {
+        let client = Client {
+            app_id: "1234",
+            hc: hyper::Client::with_connector(CurrenciesConnector::default()),
+        };
+
+        let res = client.currencies();
+        assert!(res.is_ok());
+
+        let currencies = res.unwrap();
+        assert!(currencies.len() == 171);
+        assert!(currencies.contains_key("MYR"));
     }
 }
