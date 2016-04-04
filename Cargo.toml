@@ -1,5 +1,5 @@
 [package]
-name = "openexchange"
+name = "openexchangerates"
 version = "0.1.0"
 authors = ["Johan Sim Jian An <johansja@gmail.com>"]
 
