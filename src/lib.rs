@@ -6,6 +6,7 @@ extern crate chrono;
 #[macro_use]
 extern crate yup_hyper_mock as hyper_mock;
 
+use std::cmp::PartialEq;
 use std::collections::BTreeMap;
 use std::error;
 use std::fmt;
@@ -78,6 +79,38 @@ pub struct ExchangeRate {
 
 pub type Currencies = BTreeMap<String, String>;
 
+#[derive(RustcDecodable, Debug, PartialEq)]
+pub struct Usage {
+    status: u32,
+    data: UsageData,
+}
+
+#[derive(RustcDecodable, Debug, PartialEq)]
+pub struct UsageData {
+    app_id: String,
+    status: String,
+    plan: UsageDataPlan,
+    usage: UsageDataUsage,
+}
+
+#[derive(RustcDecodable, Debug, PartialEq)]
+pub struct UsageDataPlan {
+    name: String,
+    quota: String,
+    update_frequency: String,
+    features: BTreeMap<String, bool>,
+}
+
+#[derive(RustcDecodable, Debug, PartialEq)]
+pub struct UsageDataUsage {
+    requests: i64,
+    requests_quota: i64,
+    requests_remaining: i64,
+    days_elapsed: i64,
+    days_remaining: i64,
+    daily_average: i64,
+}
+
 pub struct Client {
     app_id: &'static str,
     hc: hyper::Client,
@@ -130,14 +163,29 @@ impl Client {
         let decoded: ExchangeRate = try!(json::decode(&body));
         Ok(decoded)
     }
+
+    pub fn usage(self) -> Result<Usage, Error> {
+        let url = &format!("https://openexchangerates.org/api/usage.\
+                            json?app_id={}&prettyprint=true",
+                           self.app_id);
+        let mut res = try!(self.hc.get(url).send());
+
+        let mut body = String::new();
+        try!(res.read_to_string(&mut body));
+
+        let decoded: Usage = try!(json::decode(&body));
+        Ok(decoded)
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
+
     use chrono::*;
     use hyper;
 
-    use super::Client;
+    use super::*;
 
     #[test]
     fn new_client() {
@@ -251,5 +299,59 @@ Content-Type: application/json; charset=utf-8
         assert_eq!(rate.base, "USD");
         assert_eq!(rate.rates.len(), 161);
         assert_eq!(rate.rates.get("MYR"), Some(&3.094163_f32));
+    }
+
+    mock_connector!(UsageConnector {
+        "https://openexchangerates.org" =>
+r###"HTTP/1.1 200 OK
+Date: Tue, 05 Apr 2016 00:47:17 GMT
+Server: Apache
+Access-Control-Allow-Origin: *
+Content-Length: 399
+Connection: close
+Content-Type: application/json; charset=utf-8
+
+{"status":200,"data":{"app_id":"c63ada06e39e411f871525b9a1c90a01","status":"active","plan":{"name":"Forever Free","quota":"1,000 requests/month","update_frequency":"hourly","features":{"base":false,"symbols":false,"experimental":true,"time-series":false,"convert":false}},"usage":{"requests":9,"requests_quota":1000,"requests_remaining":991,"days_elapsed":10,"days_remaining":20,"daily_average":0}}}
+"###
+    });
+
+    #[test]
+    fn usage_works() {
+        let client = Client {
+            app_id: "1234",
+            hc: hyper::Client::with_connector(UsageConnector::default()),
+        };
+
+        let res = client.usage();
+        assert!(res.is_ok());
+
+        let usage = res.unwrap();
+        let mut features = BTreeMap::new();
+        features.insert("base".to_string(), false);
+        features.insert("symbols".to_string(), false);
+        features.insert("experimental".to_string(), true);
+        features.insert("time-series".to_string(), false);
+        features.insert("convert".to_string(), false);
+        assert_eq!(usage, Usage{
+            status: 200,
+            data: UsageData{
+                app_id: "c63ada06e39e411f871525b9a1c90a01".to_string(),
+                status: "active".to_string(),
+                plan: UsageDataPlan{
+                    name: "Forever Free".to_string(),
+                    quota: "1,000 requests/month".to_string(),
+                    update_frequency: "hourly".to_string(),
+                    features: features,
+                },
+                usage: UsageDataUsage{
+                    requests: 9,
+                    requests_quota: 1000,
+                    requests_remaining: 991,
+                    days_elapsed: 10,
+                    days_remaining: 20,
+                    daily_average: 0,
+                },
+            },
+        });
     }
 }
