@@ -2,6 +2,8 @@
 name = "openexchangerates"
 version = "0.1.0"
 authors = ["Johan Sim Jian An <johansja@gmail.com>"]
+license = "MIT"
+description = "Library for communicate with OpenExchangeRates API."
 
 [dependencies]
 hyper = "0.8"
