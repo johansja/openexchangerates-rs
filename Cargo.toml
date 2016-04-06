@@ -1,6 +1,6 @@
 [package]
 name = "openexchangerates"
-version = "0.1.0"
+version = "0.1.2"
 authors = ["Johan Sim Jian An <johansja@gmail.com>"]
 license = "MIT"
 description = "Library for communicate with OpenExchangeRates API."

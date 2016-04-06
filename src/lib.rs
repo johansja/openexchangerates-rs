@@ -69,45 +69,45 @@ impl From<json::DecoderError> for Error {
 
 #[derive(RustcDecodable, Debug)]
 pub struct ExchangeRate {
-    disclaimer: String,
-    license: String,
-    timestamp: i64,
-    base: String,
-    rates: BTreeMap<String, f32>,
+    pub disclaimer: String,
+    pub license: String,
+    pub timestamp: i64,
+    pub base: String,
+    pub rates: BTreeMap<String, f32>,
 }
 
 pub type Currencies = BTreeMap<String, String>;
 
 #[derive(RustcDecodable, Debug, PartialEq)]
 pub struct Usage {
-    status: u32,
-    data: UsageData,
+    pub status: u32,
+    pub data: UsageData,
 }
 
 #[derive(RustcDecodable, Debug, PartialEq)]
 pub struct UsageData {
-    app_id: String,
-    status: String,
-    plan: UsageDataPlan,
-    usage: UsageDataUsage,
+    pub app_id: String,
+    pub status: String,
+    pub plan: UsageDataPlan,
+    pub usage: UsageDataUsage,
 }
 
 #[derive(RustcDecodable, Debug, PartialEq)]
 pub struct UsageDataPlan {
-    name: String,
-    quota: String,
-    update_frequency: String,
-    features: BTreeMap<String, bool>,
+    pub name: String,
+    pub quota: String,
+    pub update_frequency: String,
+    pub features: BTreeMap<String, bool>,
 }
 
 #[derive(RustcDecodable, Debug, PartialEq)]
 pub struct UsageDataUsage {
-    requests: i64,
-    requests_quota: i64,
-    requests_remaining: i64,
-    days_elapsed: i64,
-    days_remaining: i64,
-    daily_average: i64,
+    pub requests: i64,
+    pub requests_quota: i64,
+    pub requests_remaining: i64,
+    pub days_elapsed: i64,
+    pub days_remaining: i64,
+    pub daily_average: i64,
 }
 
 pub struct Client {
