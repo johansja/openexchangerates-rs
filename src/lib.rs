@@ -116,6 +116,7 @@ pub struct Client {
 }
 
 impl Client {
+    /// Create a new client that is ready to interact with the API.
     pub fn new(app_id: &'static str) -> Client {
         Client {
             app_id: app_id,
@@ -123,6 +124,9 @@ impl Client {
         }
     }
 
+    /// Get the latest exchange rates.
+    ///
+    /// The corresponding endpoint in OpenExchangeRates is documented in [here](https://docs.openexchangerates.org/docs/latest-json).
     pub fn latest(self) -> Result<ExchangeRate, Error> {
         let url = &format!("https://openexchangerates.org/api/latest.json?app_id={}",
                            self.app_id);
@@ -135,6 +139,9 @@ impl Client {
         Ok(decoded)
     }
 
+    /// Get a list of supported currencies.
+    ///
+    /// The corresponding endpoint in OpenExchangeRates is documented in [here](https://docs.openexchangerates.org/docs/currencies-json).
     pub fn currencies(self) -> Result<Currencies, Error> {
         let url = &format!("https://openexchangerates.org/api/currencies.json?app_id={}",
                            self.app_id);
@@ -147,6 +154,9 @@ impl Client {
         Ok(decoded)
     }
 
+    /// Get the exchange rate for a particular date.
+    ///
+    /// The corresponding endpoint in OpenExchangeRates is documented in [here](https://docs.openexchangerates.org/docs/historical-json).
     pub fn historical(self, date: date::Date<UTC>) -> Result<ExchangeRate, Error> {
         let url = &format!("https://openexchangerates.org/api/historical/{}.json?app_id={}",
                            date.format("%Y-%m-%d"),
@@ -160,6 +170,9 @@ impl Client {
         Ok(decoded)
     }
 
+    /// Get statistics about your App ID.
+    ///
+    /// The corresponding endpoint in OpenExchangeRates is documented in [here](https://docs.openexchangerates.org/docs/usage-json).
     pub fn usage(self) -> Result<Usage, Error> {
         let url = &format!("https://openexchangerates.org/api/usage.json?app_id={}",
                            self.app_id);
