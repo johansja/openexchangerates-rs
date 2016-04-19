@@ -7,65 +7,12 @@ extern crate chrono;
 extern crate yup_hyper_mock as hyper_mock;
 
 use std::collections::BTreeMap;
-use std::error;
-use std::fmt;
-use std::io::{self, Read};
+use std::io::Read;
 
 use rustc_serialize::json;
 use chrono::*;
 
-#[derive(Debug)]
-pub enum Error {
-    Hyper(hyper::Error),
-    Io(io::Error),
-    Decode(json::DecoderError),
-}
-
-impl error::Error for Error {
-    fn description(&self) -> &str {
-        match *self {
-            Error::Hyper(ref err) => err.description(),
-            Error::Io(ref err) => err.description(),
-            Error::Decode(ref err) => err.description(),
-        }
-    }
-
-    fn cause(&self) -> Option<&error::Error> {
-        match *self {
-            Error::Hyper(ref err) => Some(err),
-            Error::Io(ref err) => Some(err),
-            Error::Decode(ref err) => Some(err),
-        }
-    }
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            Error::Hyper(ref err) => write!(f, "Hyper error: {}", err),
-            Error::Io(ref err) => write!(f, "IO error: {}", err),
-            Error::Decode(ref err) => write!(f, "Decode error: {}", err),
-        }
-    }
-}
-
-impl From<hyper::Error> for Error {
-    fn from(err: hyper::Error) -> Error {
-        Error::Hyper(err)
-    }
-}
-
-impl From<io::Error> for Error {
-    fn from(err: io::Error) -> Error {
-        Error::Io(err)
-    }
-}
-
-impl From<json::DecoderError> for Error {
-    fn from(err: json::DecoderError) -> Error {
-        Error::Decode(err)
-    }
-}
+mod error;
 
 #[derive(RustcDecodable, Debug)]
 pub struct ExchangeRate {
@@ -127,7 +74,7 @@ impl Client {
     /// Get the latest exchange rates.
     ///
     /// The corresponding endpoint in OpenExchangeRates is documented in [here](https://docs.openexchangerates.org/docs/latest-json).
-    pub fn latest(self) -> Result<ExchangeRate, Error> {
+    pub fn latest(self) -> Result<ExchangeRate, error::Error> {
         let url = &format!("https://openexchangerates.org/api/latest.json?app_id={}",
                            self.app_id);
         let mut res = try!(self.hc.get(url).send());
@@ -142,7 +89,7 @@ impl Client {
     /// Get a list of supported currencies.
     ///
     /// The corresponding endpoint in OpenExchangeRates is documented in [here](https://docs.openexchangerates.org/docs/currencies-json).
-    pub fn currencies(self) -> Result<Currencies, Error> {
+    pub fn currencies(self) -> Result<Currencies, error::Error> {
         let url = &format!("https://openexchangerates.org/api/currencies.json?app_id={}",
                            self.app_id);
         let mut res = try!(self.hc.get(url).send());
@@ -157,7 +104,7 @@ impl Client {
     /// Get the exchange rate for a particular date.
     ///
     /// The corresponding endpoint in OpenExchangeRates is documented in [here](https://docs.openexchangerates.org/docs/historical-json).
-    pub fn historical(self, date: date::Date<UTC>) -> Result<ExchangeRate, Error> {
+    pub fn historical(self, date: date::Date<UTC>) -> Result<ExchangeRate, error::Error> {
         let url = &format!("https://openexchangerates.org/api/historical/{}.json?app_id={}",
                            date.format("%Y-%m-%d"),
                            self.app_id);
@@ -173,7 +120,7 @@ impl Client {
     /// Get statistics about your App ID.
     ///
     /// The corresponding endpoint in OpenExchangeRates is documented in [here](https://docs.openexchangerates.org/docs/usage-json).
-    pub fn usage(self) -> Result<Usage, Error> {
+    pub fn usage(self) -> Result<Usage, error::Error> {
         let url = &format!("https://openexchangerates.org/api/usage.json?app_id={}",
                            self.app_id);
         let mut res = try!(self.hc.get(url).send());
