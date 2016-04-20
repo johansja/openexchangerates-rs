@@ -105,7 +105,7 @@ impl Client {
     /// Get the exchange rate for a particular date.
     ///
     /// The corresponding endpoint in OpenExchangeRates is documented in [here](https://docs.openexchangerates.org/docs/historical-json).
-    pub fn historical(self, date: date::Date<UTC>) -> Result<ExchangeRate, error::Error> {
+    pub fn historical(self, date: NaiveDate) -> Result<ExchangeRate, error::Error> {
         let url = &format!("https://openexchangerates.org/api/historical/{}.json?app_id={}",
                            date.format("%Y-%m-%d"),
                            self.app_id);
@@ -760,7 +760,7 @@ Content-Type: application/json; charset=utf-8
             hc: hyper::Client::with_connector(HistoricalConnector::default()),
         };
 
-        let res = client.historical(UTC.ymd(2013, 2, 16));
+        let res = client.historical(NaiveDate::from_ymd(2013, 2, 16));
         assert!(res.is_ok());
 
         let rate = res.unwrap();
