@@ -1,3 +1,4 @@
+//! A library for accessing OpenExchangeRates API.
 extern crate hyper;
 extern crate rustc_serialize;
 extern crate chrono;
@@ -12,7 +13,7 @@ use std::io::Read;
 use rustc_serialize::json;
 use chrono::*;
 
-mod error;
+pub mod error;
 
 #[derive(RustcDecodable, Debug)]
 pub struct ExchangeRate {

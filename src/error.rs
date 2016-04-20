@@ -1,3 +1,4 @@
+//! Error module
 use std::error;
 use std::fmt;
 use std::io;
@@ -5,10 +6,14 @@ use std::io;
 use hyper;
 use rustc_serialize::json;
 
+/// A set of errors that can occurs when accessing the OpenExchangeRates API.
 #[derive(Debug)]
 pub enum Error {
+    /// Error coming from `hyper` crate.
     Hyper(hyper::Error),
+    /// Error coming from `std::io` library.
     Io(io::Error),
+    /// Error coming from `rustc_serialize` crate.
     Decode(json::DecoderError),
 }
 
