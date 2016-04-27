@@ -7,6 +7,7 @@ extern crate chrono;
 #[macro_use]
 extern crate yup_hyper_mock as hyper_mock;
 
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::io::Read;
 
@@ -58,16 +59,18 @@ pub struct UsageDataUsage {
     pub daily_average: i64,
 }
 
-pub struct Client {
-    app_id: &'static str,
+pub struct Client<'a> {
+    app_id: Cow<'a, str>,
     hc: hyper::Client,
 }
 
-impl Client {
+impl<'a> Client<'a> {
     /// Create a new client that is ready to interact with the API.
-    pub fn new(app_id: &'static str) -> Client {
+    pub fn new<S>(app_id: S) -> Client<'a>
+        where S: Into<Cow<'a, str>>
+    {
         Client {
-            app_id: app_id,
+            app_id: app_id.into(),
             hc: hyper::Client::new(),
         }
     }
@@ -136,6 +139,7 @@ impl Client {
 
 #[cfg(test)]
 mod tests {
+    use std::borrow::Cow;
     use std::collections::BTreeMap;
 
     use chrono::*;
@@ -148,6 +152,12 @@ mod tests {
         let app_id = "1234";
         let client = Client::new(app_id);
         assert_eq!(client.app_id, app_id);
+    }
+
+    #[test]
+    fn new_client_string() {
+        let app_id = String::from("1234");
+        Client::new(app_id);
     }
 
     mock_connector!(LatestConnector {
@@ -347,7 +357,7 @@ Content-Type: application/json; charset=utf-8
     #[test]
     fn latest_works() {
         let client = Client {
-            app_id: "1234",
+            app_id: Cow::Borrowed("1234"),
             hc: hyper::Client::with_connector(LatestConnector::default()),
         };
 
@@ -554,7 +564,7 @@ Content-Type: application/json; charset=utf-8
     #[test]
     fn currencies_works() {
         let client = Client {
-            app_id: "1234",
+            app_id: Cow::Borrowed("1234"),
             hc: hyper::Client::with_connector(CurrenciesConnector::default()),
         };
 
@@ -756,7 +766,7 @@ Content-Type: application/json; charset=utf-8
     #[test]
     fn historical_works() {
         let client = Client {
-            app_id: "1234",
+            app_id: Cow::Borrowed("1234"),
             hc: hyper::Client::with_connector(HistoricalConnector::default()),
         };
 
@@ -814,7 +824,7 @@ Content-Type: application/json; charset=utf-8
     #[test]
     fn usage_works() {
         let client = Client {
-            app_id: "1234",
+            app_id: Cow::Borrowed("1234"),
             hc: hyper::Client::with_connector(UsageConnector::default()),
         };
 
