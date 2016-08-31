@@ -1,7 +1,12 @@
 //! A library for accessing OpenExchangeRates API.
-extern crate hyper;
-extern crate rustc_serialize;
+
+#[cfg_attr(feature = "serde_macros", feature(plugin, custom_derive))]
+#[cfg_attr(feature = "serde_macros", plugin(serde_macros))]
+
 extern crate chrono;
+extern crate hyper;
+extern crate serde;
+extern crate serde_json;
 
 #[cfg(test)]
 #[macro_use]
@@ -11,53 +16,15 @@ use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::io::Read;
 
-use rustc_serialize::json;
 use chrono::*;
 
 pub mod error;
 
-#[derive(RustcDecodable, Debug)]
-pub struct ExchangeRate {
-    pub disclaimer: String,
-    pub license: String,
-    pub timestamp: i64,
-    pub base: String,
-    pub rates: BTreeMap<String, f32>,
-}
+#[cfg(feature = "serde_macros")]
+include!("serde_types.in.rs");
 
-pub type Currencies = BTreeMap<String, String>;
-
-#[derive(RustcDecodable, Debug, PartialEq)]
-pub struct Usage {
-    pub status: u32,
-    pub data: UsageData,
-}
-
-#[derive(RustcDecodable, Debug, PartialEq)]
-pub struct UsageData {
-    pub app_id: String,
-    pub status: String,
-    pub plan: UsageDataPlan,
-    pub usage: UsageDataUsage,
-}
-
-#[derive(RustcDecodable, Debug, PartialEq)]
-pub struct UsageDataPlan {
-    pub name: String,
-    pub quota: String,
-    pub update_frequency: String,
-    pub features: BTreeMap<String, bool>,
-}
-
-#[derive(RustcDecodable, Debug, PartialEq)]
-pub struct UsageDataUsage {
-    pub requests: i64,
-    pub requests_quota: i64,
-    pub requests_remaining: i64,
-    pub days_elapsed: i64,
-    pub days_remaining: i64,
-    pub daily_average: i64,
-}
+#[cfg(feature = "serde_codegen")]
+include!(concat!(env!("OUT_DIR"), "/serde_types.rs"));
 
 pub struct Client<'a> {
     app_id: Cow<'a, str>,
@@ -86,8 +53,8 @@ impl<'a> Client<'a> {
         let mut body = String::new();
         try!(res.read_to_string(&mut body));
 
-        let decoded: ExchangeRate = try!(json::decode(&body));
-        Ok(decoded)
+        let deserialized: ExchangeRate = try!(serde_json::from_str(&body));
+        Ok(deserialized)
     }
 
     /// Get a list of supported currencies.
@@ -101,8 +68,8 @@ impl<'a> Client<'a> {
         let mut body = String::new();
         try!(res.read_to_string(&mut body));
 
-        let decoded: Currencies = try!(json::decode(&body));
-        Ok(decoded)
+        let deserialized: Currencies = try!(serde_json::from_str(&body));
+        Ok(deserialized)
     }
 
     /// Get the exchange rate for a particular date.
@@ -117,8 +84,8 @@ impl<'a> Client<'a> {
         let mut body = String::new();
         try!(res.read_to_string(&mut body));
 
-        let decoded: ExchangeRate = try!(json::decode(&body));
-        Ok(decoded)
+        let deserialized: ExchangeRate = try!(serde_json::from_str(&body));
+        Ok(deserialized)
     }
 
     /// Get statistics about your App ID.
@@ -132,15 +99,14 @@ impl<'a> Client<'a> {
         let mut body = String::new();
         try!(res.read_to_string(&mut body));
 
-        let decoded: Usage = try!(json::decode(&body));
-        Ok(decoded)
+        let deserialized: Usage = try!(serde_json::from_str(&body));
+        Ok(deserialized)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use std::borrow::Cow;
-    use std::collections::BTreeMap;
 
     use chrono::*;
     use hyper;
@@ -156,7 +122,7 @@ mod tests {
 
     #[test]
     fn new_client_string() {
-        let app_id = String::from("1234");
+        let app_id = "1234".to_owned();
         Client::new(app_id);
     }
 
@@ -832,12 +798,6 @@ Content-Type: application/json; charset=utf-8
         assert!(res.is_ok());
 
         let usage = res.unwrap();
-        let mut features = BTreeMap::new();
-        features.insert("base".to_string(), false);
-        features.insert("symbols".to_string(), false);
-        features.insert("experimental".to_string(), true);
-        features.insert("time-series".to_string(), false);
-        features.insert("convert".to_string(), false);
         assert_eq!(usage,
                    Usage {
                        status: 200,
@@ -848,7 +808,13 @@ Content-Type: application/json; charset=utf-8
                                name: "Forever Free".to_string(),
                                quota: "1,000 requests/month".to_string(),
                                update_frequency: "hourly".to_string(),
-                               features: features,
+                               features: Features {
+                                   base: false,
+                                   symbols: false,
+                                   experimental: true,
+                                   time_series: false,
+                                   convert: false,
+                               },
                            },
                            usage: UsageDataUsage {
                                requests: 11,
